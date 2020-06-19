@@ -1,6 +1,8 @@
 #!/bin/bash
 
 # ESTE SCRIPT ANALIZA Y DEPURA LOS DATOS DE LOS FICHEROS "REPORTES BOSS" EXTRAYENDO SOLO LOS DATOS NECESARIOS PARA SU ANALISIS
+# Y ARROJANDO TODOS LOS SECTORES JUNTOS PARA TENER ASI UN TOTAL COMPLETO
+
 # Directorios script:
 # bash /media/$USER/CA4D-951D/Scripts/"Shell Scripts"/CANTV/"analizador de REPORTES BOSS aba"/datosaba.sh
 
@@ -34,7 +36,7 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
 
     # crear el fichero FINAL .csv con su fecha como nombre, con el siguiente formato: año/mes/dia
     archivo=$(echo $clientes | awk -F"_" '{print $4}'| sed -e 's/.csv//g' | sed 's/FE//g'| awk 'BEGIN{FIELDWIDTHS="2 2 4"}{print $3,$2,$1}' | sed 's/ //g')
-	echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD" > $archivo.csv
+	echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > $archivo.csv
 
     awk 'BEGIN {FS=","; OFS=";"} {print $2,$16}' $totales | sort >> $totales.tmp
     mv $totales.tmp $totales
@@ -50,7 +52,7 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
         sed -i "$i"d csv.tmp
     done
 
-    # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, PLANxCLIENTE 
+    # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, VELOCIDAD POR PLAN 
     awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> $archivo.csv
     awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp               # Total de clientes, #planes y promedio de velocidad           
     varC=$(awk '{ clientes += $1 } END { print clientes }' tt.tmp)
@@ -59,6 +61,5 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
 
     # Imprimir ultima fila
     echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> $archivo.csv
-
 
 done
