@@ -36,16 +36,16 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
 
     # crear el fichero FINAL .csv con su fecha como nombre, con el siguiente formato: año/mes/dia
     archivo=$(echo $clientes | awk -F"_" '{print $4}'| sed -e 's/.csv//g' | sed 's/FE//g'| awk 'BEGIN{FIELDWIDTHS="2 2 4"}{print $3,$2,$1}' | sed 's/ //g')
-	echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > $archivo.csv
+	echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > T$archivo.csv
 
     awk 'BEGIN {FS=","; OFS=";"} {print $2,$16}' $totales | sort >> $totales.tmp
     mv $totales.tmp $totales
 
     # variable con el contenido del .csv con spam
-	csvSpam=$(awk 'BEGIN {FS=","; OFS=";"} {print $12,$11,$6,$14,$13,$16}' $clientes | sort)
-    echo "$csvSpam" > csv.tmp
+	spam=$(awk 'BEGIN {FS=","; OFS=";"} {print $12,$11,$6,$14,$13,$16}' $clientes | sort)
+    echo "$spam" > csv.tmp
     # Borrar spam (lineas con interfaces de pruebas, hasta ahora conocido los coID: 0 y T200)
-    spam=$(echo "$csvSpam"| cat -n | grep -we "T200" -e "0" | awk '{print $1}' | sort -r)
+    spam=$(echo "$spam"| cat -n | grep -we "T200" -e "0" | awk '{print $1}' | sort -r)
     
     # Se procede a borrar las lineas "spam"
     for i in $spam;do
@@ -53,13 +53,19 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
     done
 
     # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, VELOCIDAD POR PLAN 
-    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> $archivo.csv
+    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> T$archivo.csv
     awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp               # Total de clientes, #planes y promedio de velocidad           
     varC=$(awk '{ clientes += $1 } END { print clientes }' tt.tmp)
     #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' tt.tmp)
     varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' tt.tmp)
 
     # Imprimir ultima fila
-    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> $archivo.csv
+    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> T$archivo.csv
+
+
+#########################################################################################################################################
+####################################################  SACAR TOTAL DE VALORES PUNTUALES POR COID #########################################
+
+
 
 done
