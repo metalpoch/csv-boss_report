@@ -16,7 +16,7 @@ spacework=/home/"$USER"/Laboratorio-pruebas/"$USER"/poch/ConsumoABAcliente
 #-----------------------------------------------------------------------------------#
 #--------------------------------- INICIO DE SCRIPT --------------------------------#
 
-mkdir -p "$spacework"/coID/{clientes,totales}                                       # Se crea el espacio de trabajo
+mkdir -p "$spacework"                                                               # Se crea el espacio de trabajo
 cd "$origen"                                                                        # Ir al espacio de origen (donde estan los .zip)
 for file in *.zip; do                                                               # Se cambia el nombre de los ficheros .zip para quitarle
     nuevoNombre=`echo $file | sed 's/ /_/g'`                                        # los espacios (me estaban jodiendo el script ese hp nombre)
@@ -66,6 +66,18 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
 #########################################################################################################################################
 ####################################################  SACAR TOTAL DE VALORES PUNTUALES POR COID #########################################
 
-
-
+    coID=$(awk -F";" '{print $1}' csv.tmp); coID=($coID)                            # todos los coID como variable-array
+    ini=$(echo "$coID" | head -1)                                                   # 1er coID almacenada en la variable $ini
+    
+    #   Recorrer fila por fila añadiendo un salto de linea por cada cambio en el coID
+    n=1 ; rm $archivo.tmp
+    for i in ${coID[@]}; do    
+        k=${coID[$n]}
+        if [ "$i" == "$k" ];then
+            echo "$i" >> $archivo.tmp
+        else
+            echo -e "$i\n" >> $archivo.tmp
+        fi
+        n=$(($n+1))
+    done
 done
