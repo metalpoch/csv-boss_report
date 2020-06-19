@@ -68,12 +68,13 @@ done
 
 
     # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, PLANxCLIENTE 
-    awk 'BEGIN {FS=";"; OFS=";"} { print $1,"",$2,$3,$6,$5,($5*$6) }' csv.tmp >> $archivo.csv
+    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> $archivo.csv
 
     # TERMINAR DE HACER LOS CALCULOS MATEMATICOS CON BC Y ARROJARLO EN LA ULTIMA FILA DE CSV 
-    awk -F";" '{ print $6,$5,($5*$6) }' csv.tmp > tt.tmp            
-    varcp=$(awk '{ clientes += $1 ; plan += $2 ; planClientes += $3 } END {print clientes";", plan}' tt.tmp)
-    varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes }' tt.tmp)
+    awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp            
+    varC=$(awk '{ clientes += $1 } END { print clientes }' tt.tmp)
+    #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' tt.tmp)
+    varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' tt.tmp)
 
     # Imprimir ultima fila
-    echo ";;;TOTAL:;$varcp;$varTCP" >> $archivo.csv
+    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> $archivo.csv
