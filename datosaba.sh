@@ -1,9 +1,8 @@
 #!/bin/bash
 
 # ESTE SCRIPT ANALIZA Y DEPURA LOS DATOS DE LOS FICHEROS "REPORTES BOSS" EXTRAYENDO SOLO LOS DATOS NECESARIOS PARA SU ANALISIS
-asd
 # Directorios script:
-# bash /media/kaup/CA4D-951D/Scripts/'SCRIPTS CANTV'/'analizador de REPORTES BOSS aba'/datosaba.sh
+# bash /media/$USER/CA4D-951D/Scripts/"Shell Scripts"/CANTV/"analizador de REPORTES BOSS aba"/datosaba.sh
 
 #-----------------------------------------------------------------------------------#
 #----------------------------------- VARIABLES  ------------------------------------#
