@@ -50,31 +50,15 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
         sed -i "$i"d csv.tmp
     done
 
-    # # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, PLANxCLIENTE 
-    # awk 'BEGIN {FS=";"; OFS=";"} { print $1,"",$2,$3,$6,($5/1024),($5*$6/1024) }' csv.tmp >> $archivo.tmp
-    #
-    # # fila: TOTAL                   # LOS VALORES CON DECIMALES NO SON TOMADOS SON TOMADO COMO CADENA DE TEXTO, EL RESULTADO FINAL NO ES VALIDO
-    # total=$(awk '
-    #             {FS=";"; OFS=";"}
-    #             { c += $5 ; p += $6 ; cp += $5*$6 }
-    #             END { printf c";" ; printf p";" ; printf "%.2f \n", cp }' $archivo.tmp)
-
-    # # Imprimir ultima fila
-    # echo ";;;TOTAL:;$total" >> $archivo.tmp
-done
-
-
-######## TEST###############
-
-
     # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, PLANxCLIENTE 
     awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> $archivo.csv
-
-    # TERMINAR DE HACER LOS CALCULOS MATEMATICOS CON BC Y ARROJARLO EN LA ULTIMA FILA DE CSV 
-    awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp            
+    awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp               # Total de clientes, #planes y promedio de velocidad           
     varC=$(awk '{ clientes += $1 } END { print clientes }' tt.tmp)
     #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' tt.tmp)
     varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' tt.tmp)
 
     # Imprimir ultima fila
     echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> $archivo.csv
+
+
+done
