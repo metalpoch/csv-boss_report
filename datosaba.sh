@@ -9,8 +9,8 @@
 #-----------------------------------------------------------------------------------#
 #----------------------------------- VARIABLES  ------------------------------------#
 
-origen=/home/"$USER"/Laboratorio-pruebas/"$USER"/Descargas
-spacework=/home/"$USER"/Laboratorio-pruebas/"$USER"/poch/ConsumoABAcliente
+origen=/home/"$USER"/Laboratorio-pruebas/"$USER"/Descargas                          # Donde se encuentran los .zip a descomprimir
+spacework=/home/"$USER"/Laboratorio-pruebas/"$USER"/poch/ConsumoABAcliente          # Donde serán exportado los ficheros listo
 # ruta script terminado: spacework=/home/"$USER"/poch/ClienteABA
 
 #-----------------------------------------------------------------------------------#
@@ -59,7 +59,7 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
     #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' tt.tmp)
     varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' tt.tmp)
 
-    # Imprimir ultima fila
+    # Imprimir ultima fila con los resultados totales
     echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> T$archivo.csv
 
 
@@ -69,15 +69,35 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
     coID=$(awk -F";" '{print $1}' csv.tmp); coID=($coID)                            # todos los coID como variable-array
     ini=$(echo "$coID" | head -1)                                                   # 1er coID almacenada en la variable $ini
     
-    #   Recorrer fila por fila añadiendo un salto de linea por cada cambio en el coID
-    n=1 ; rm $archivo.tmp
+    #   Recorrer fila por fila añadiendo un salto de linea llamado "limite" por cada cambio en el coID
+    n=1
     for i in ${coID[@]}; do    
         k=${coID[$n]}
         if [ "$i" == "$k" ];then
             echo "$i" >> $archivo.tmp
         else
-            echo -e "$i\n" >> $archivo.tmp
+            echo -e "$i\nlimite" >> $archivo.tmp
         fi
         n=$(($n+1))
     done
+
+#######################################  BUSCAR LOS SALTOS DE LINEAS (\nlimite) PARA LIMITAR LOS COID #############################
+
+    limite=$(cat -n $archivo.tmp | grep limite | awk '{print $1}'); limite=($limite)
+    linea1=$(echo "$limite" | head -1)
+    
+    sed -n "1,$(($limite-1))"p csv.tmp >> archivo.csv
+    echo -e "totales totales totales\n" >> archivo.csv
+
+    j=1
+    for (( i=0 ; i<=${#limite[*]} ; i++ )); do
+        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p csv.tmp >> archivo.csv
+        echo -e "totales totales totales\n" >> archivo.csv
+        ((j++))
+    done
+
+
 done
+
+
+sed -n "${limite[i]},$((${limite[j]}-1))"p csv.tmp >> archivo.csv
