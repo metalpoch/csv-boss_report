@@ -34,12 +34,12 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
     sed -i '1d' "$totales"                                                          # y se extraen las columnas a un archivo temporal con awk
    
 
-    # crear el fichero FINAL .csv con su fecha como nombre, con el siguiente formato: año/mes/dia
+    # crear el fichero TOTAL FINAL .csv con su fecha como nombre, con el siguiente formato: año/mes/dia
     archivo=$(echo $clientes | awk -F"_" '{print $4}'| sed -e 's/.csv//g' | sed 's/FE//g'| awk 'BEGIN{FIELDWIDTHS="2 2 4"}{print $3,$2,$1}' | sed 's/ //g')
 	echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > T$archivo.csv
 
-    awk 'BEGIN {FS=","; OFS=";"} {print $2,$16}' $totales | sort >> $totales.tmp
-    mv $totales.tmp $totales
+    awk 'BEGIN {FS=","; OFS=";"} {print $2,$16}' $totales | sort >> $totales.dat
+  #  mv $totales.tmp $totales
 
     # variable con el contenido del .csv con spam
 	spam=$(awk 'BEGIN {FS=","; OFS=";"} {print $12,$11,$6,$14,$13,$16}' $clientes | sort)
@@ -54,20 +54,20 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
 
     # COID, ESTADO, REGIÓN, EQUIPO, PLAN, CLIENTES, VELOCIDAD POR PLAN 
     awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> T$archivo.csv
-    awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > tt.tmp               # Total de clientes, #planes y promedio de velocidad           
-    varC=$(awk '{ clientes += $1 } END { print clientes }' tt.tmp)
-    #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' tt.tmp)
-    varTCP=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' tt.tmp)
+    awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > bc.tmp               # Total de clientes, #planes y promedio de velocidad           
+    varC=$(awk '{ clientes += $1 } END { print clientes }' bc.tmp)
+    #varP=$(awk '{ plan += $2 } END { printf "%.2f \n", plan }' bc.tmp)
+    varV=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
 
     # Imprimir ultima fila con los resultados totales
-    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varTCP" | tr -s "." "," >> T$archivo.csv
+    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV" | tr -s "." "," >> T$archivo.csv
 
 
 #########################################################################################################################################
 ####################################################  SACAR TOTAL DE VALORES PUNTUALES POR COID #########################################
 
     coID=$(awk -F";" '{print $1}' csv.tmp); coID=($coID)                            # todos los coID como variable-array
-    ini=$(echo "$coID" | head -1)                                                   # 1er coID almacenada en la variable $ini
+    ini=$(echo "$coID" | head -1)        # se esta usando???? ¿?                    # 1er coID almacenada en la variable $ini
     
     #   Recorrer fila por fila añadiendo un salto de linea llamado "limite" por cada cambio en el coID
     n=1
@@ -82,22 +82,54 @@ for zip in $(ls $origen/REPORTE*zip);do                                         
     done
 
 #######################################  BUSCAR LOS SALTOS DE LINEAS (\nlimite) PARA LIMITAR LOS COID #############################
-
-    limite=$(cat -n $archivo.tmp | grep limite | awk '{print $1}'); limite=($limite)
-    linea1=$(echo "$limite" | head -1)
     
-    sed -n "1,$(($limite-1))"p csv.tmp >> archivo.csv
-    echo -e "totales totales totales\n" >> archivo.csv
+    # se quita la primera y ultima linea de T$archivo.csv a un temporal que servirá de base para el $archivo.csv
+    sed '1d' T$archivo.csv > a.tmp
+    sed -i '$d' a.tmp
+
+    # se almacenan las lineas donde se encuentra la division de coID "limite" como variable array
+    limite=$(cat -n $archivo.tmp | grep limite | awk '{print $1}'); limite=($limite)
+#linea1=$(echo "$limite" | head -1)
+
+    #Se imprime la primera fila 
+    echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > $archivo.csv
+
+    #varABA=$(awk...)
+    #awk 'BEGIN { FS=";" ; OFS=";" } { varC += $5; varV = $7} { print $1,$2,$3,$4,$5,$6,$7} END { print ";;;Clientes totales:",varC,"Velocidad promedio:;" ; printf "%.2f\n", varV/NR }'
+ #funciona:   sed -n '1,17'p T20200611.csv | awk 'BEGIN { FS=";" ; OFS=";" } { varC += $5; varV = $7} { print $1,$2,$3,$4,$5,$6,$7} END { print ";;;Clientes totales:",varC,"Velocidad promedio:;" ; printf "%.2f\n", varV/NR }'
+
+
+    #sed -n "1,$(($limite-1))"p T$archivo.csv | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' >> archivo.tmp
+    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' > bc.tmp
+
+    # Total de clientes, promedio de velocidad           
+    varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $5 } END { print clientes }' bc.tmp)
+    varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $7 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
+
+    # se imprimen los resultados
+    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' >> $archivo.csv
+    echo -e ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv
+
 
     j=1
     for (( i=0 ; i<=${#limite[*]} ; i++ )); do
-        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p csv.tmp >> archivo.csv
-        echo -e "totales totales totales\n" >> archivo.csv
+
+        #CALCULOS MATEMATICOS POR EQUIPO
+        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' > bc.tmp
+        varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $5 } END { print clientes }' bc.tmp)
+        varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $7 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
+        
+        #IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
+        echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" >> $archivo.csv
+        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' >> $archivo.csv
+        echo -e ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv       
         ((j++))
-    done
+    done 2> /dev/null
 
-
+    # SE RENOMBRAN ARCHIVOS FINALES PARA ELIMINAR LOS TEMPORALES Y LOS .CSV (ASI NO SALDRAN PERJUDICADOS)
+    mv $archivo.csv $archivo.csv.keiber ;  mv T$archivo.csv T$archivo.csv.keiber
+    # SE ELIMINAN LOS ARCHIVOS TEMPORALES Y LOS NO NECESITADOS
+    rm *.tmp *.csv
+    #SE RESTAURA LOS NOMBRE DE LOS FICHEROS FINALES
+    mv $archivo.csv.keiber $archivo.csv;  mv T$archivo.csv.keiber T$archivo.csv
 done
-
-
-sed -n "${limite[i]},$((${limite[j]}-1))"p csv.tmp >> archivo.csv
