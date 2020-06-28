@@ -46,8 +46,16 @@ for zip in $(ls $origen/REPORTE*zip);do
     for i in $spam; do sed -i "$i"d csv.tmp; done
 
     # IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
-    echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > T$archivo.csv
-    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,"",$2,$3,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," >> T$archivo.csv
+    echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > T$archivo.csv
+
+    # LIMPIAR SPAM DE REGION/NODOS Y SEPARAR EN DOS LOS FICHEROS PARA SUSTITUIR EL "." POR LA "," EN LOS CALCULOS SIN DAÑAR LA REGION/NODO 
+    awk 'BEGIN {FS=";"; OFS=";"} {print $1,$2,$3";"}' csv.tmp | sed -e 's/ ABA NGN//g ; s/ ABA//g ; s/ 20011//g ; s/ 2008//g ; s/ 2007//g ; s/ 2009//g ; s/ 2010//g ; s/ 2011//g ; s/ 2012//g ; s/ 2013//g ; s/ 2014//g ; s/ 2015//g ; s/ 2016//g ; s/ 2017//g ; s/ 2018//g ; s/ 2019//g ; s/ 2020//g  ; s/ 2021//g  ; s/ 2022//g  ; s/ 2023//g  ; s/ 2024//g ; s/ 2025//g ; s/ 2026//g' > part1.tmp
+    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," > part2.tmp
+
+    # IMPRIMIR VALORES DESPUES DE UNIR EL FICHERO ANTES SEPARADO
+    paste part1.tmp part2.tmp | awk -F';' '{print $1,"",$2,$3,$5,$6,$7}' OFS=';' >> T$archivo.csv
+    
+    # CALCULO MATEMATICO PARA EL RESULTADO TOTAL Y PROMEDIO
     awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > bc.tmp
     varC=$(awk '{ clientes += $1 } END { print clientes }' bc.tmp)
     varV=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
@@ -57,8 +65,8 @@ for zip in $(ls $origen/REPORTE*zip);do
 #-------------------------------------------------------------------------------------------------------------------#
 #------------------------------------- fichero con el total por zona INICIADO --------------------------------------#
 
-    # ALMACENAR COID COMO ARRAY PARA AGREGAR UNA LINEA "limite" CADA VEZ QUE CAMBIE DE VALOR PARA REGISTRAR ASI
-    # LOS RESULTADOS TOTALES COID POR COID EN EL MISMO FICHERO FINAL
+    # Almacena coid como array para agregar la palabra "limite" cada vez que cambie de valor en una linea nueva para
+    # que pueda sustituirse por el total/promedio y añadir un salto de linea
     coID=$(awk -F";" '{print $1}' csv.tmp); coID=($coID)
     n=1
     for i in ${coID[@]}; do
@@ -109,4 +117,21 @@ for zip in $(ls $origen/REPORTE*zip);do
     mv $archivo.csv $archivo.csv.keiber ;  mv T$archivo.csv T$archivo.csv.keiber
     rm *.tmp *.csv
     mv $archivo.csv.keiber $archivo.csv;  mv T$archivo.csv.keiber T$archivo.csv
+
+######################################## ALGORITMO DE ESTADO POR REGION/NODO ########################################
+
+#     # test
+#     awk -F';' '{print $2}' T$archivo.csv | sort | sed '1d' | uniq > reginodo.tmp
+#     i=0; while IFS= read -r line; do reginodo[$i]=$line; ((i=$i+1)); done < reginodo.tmp
+#     mkdir -p estado-region
+#     n=1
+
+#     # exporta las regiones y carpetas para ser revisado de uno en uno x.x
+#     # y ver cual no necesita :D y cual necesita :c ser agregado a la base de dato
+#     for i in "${reginodo[@]}"; do
+#         echo "$n / 3748"
+#         bash acronikey.sh --region "$i" | awk -F';' '{print $1}' | sort | uniq > estado-region/"$i.r"
+#         bash acronikey.sh --nodo "$i" | awk -F';' '{print $1}' | sort | uniq > estado-region/"$i.n"
+#         ((n=$n+1))
+#     done
 done
