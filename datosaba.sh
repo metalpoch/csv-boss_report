@@ -36,8 +36,8 @@ for zip in $(ls $origen/REPORTE*zip);do
     sed -i '1d' "$totales"
     archivo=$(echo $clientes | awk -F"_" '{print $4}'| sed -e 's/.csv//g' | sed 's/FE//g'| awk 'BEGIN{FIELDWIDTHS="2 2 4"}{print $3,$2,$1}' | sed 's/ //g')
 	
-#    SE IMPRIME EL COID Y TOTAL DE PUERTOS A 'TotalPorts.coID' PARA AGREGARLOS A LOS FICHEROS
-#    awk 'BEGIN {FS=","; OFS=";"} {print $2,$16}' $totales | sort >> TotalPorts.coID
+    # SE IMPRIME coid,region,equipo,DSLAMIP,AGREGADOR(LOCATION+NRPNAME),PUERTOS EN FIChERO TEMPORAL
+    awk 'BEGIN {FS=","; OFS=";"} {print $2,$4,$3,$5,$12"-"$13,$16}' $totales | sort > tvar.tmp
 
     # ORDENAR EL FICHERO '$clientes' POR COID Y SE ELIMINAN LAS LINEAS SPAM QUE CONTENGAN INTERFACES DE PRUEBA (HASTA AHORA SE CONOCE 0 Y T200) 
 	spam=$(awk 'BEGIN {FS=","; OFS=";"} {print $12,$11,$6,$14,$13,$16}' $clientes | sort)
@@ -46,20 +46,47 @@ for zip in $(ls $origen/REPORTE*zip);do
     for i in $spam; do sed -i "$i"d csv.tmp; done
 
     # IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
-    echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > T$archivo.csv
+    echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;DSLAMIP;AGREGADOR;CLIENTES;PLAN;VELOCIDAD POR PLAN;ESTATUS;PUERTOS POR COID" > T$archivo.csv
 
     # LIMPIAR SPAM DE REGION/NODOS Y SEPARAR EN DOS LOS FICHEROS PARA SUSTITUIR EL "." POR LA "," EN LOS CALCULOS SIN DAÑAR LA REGION/NODO 
-    awk 'BEGIN {FS=";"; OFS=";"} {print $1,$2,$3";"}' csv.tmp | sed -e 's/ ABA NGN//g ; s/ ABA//g ; s/ 20011//g ; s/ 2008//g ; s/ 2007//g ; s/ 2009//g ; s/ 2010//g ; s/ 2011//g ; s/ 2012//g ; s/ 2013//g ; s/ 2014//g ; s/ 2015//g ; s/ 2016//g ; s/ 2017//g ; s/ 2018//g ; s/ 2019//g ; s/ 2020//g  ; s/ 2021//g  ; s/ 2022//g  ; s/ 2023//g  ; s/ 2024//g ; s/ 2025//g ; s/ 2026//g' > part1.tmp
-    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $1,$6,plan,(plan*$6) }' csv.tmp | tr -s "." "," > part2.tmp
+    awk 'BEGIN {FS=";"; OFS=";"} {print $1,$2}' csv.tmp > part1.tmp
+    awk 'BEGIN {FS=";"; OFS=";"} { plan = $5/1024 } { print $6,plan,(plan*$6),$4 }' csv.tmp | tr -s "." "," > part2.tmp
 
     # IMPRIMIR VALORES DESPUES DE UNIR EL FICHERO ANTES SEPARADO
-    paste part1.tmp part2.tmp | awk -F';' '{print $1,"",$2,$3,$5,$6,$7}' OFS=';' >> T$archivo.csv
+    #paste part1.tmp part2.tmp | awk -F';' '{print $1,$2,$3,$5,$6,$7}' OFS=';' >> T$archivo.csv.tmp
+    paste -d ";" part1.tmp part2.tmp > T$archivo.csv.tmp
     
     # CALCULO MATEMATICO PARA EL RESULTADO TOTAL Y PROMEDIO
     awk -F";" '{ plan = $5/1024 } { print $6,plan,(plan*$6) }' csv.tmp > bc.tmp
     varC=$(awk '{ clientes += $1 } END { print clientes }' bc.tmp)
     varV=$(awk '{ planClientes += $3 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
-    echo ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV" | tr -s "." "," >> T$archivo.csv
+    totalF=$(echo ";;;;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV" | tr -s "." ",")
+
+
+
+    # se exporta las regiones existente en fichero temporal y se crea un array con cada linea de este fichero region
+    # para buscar coincidencia linea a linea y exportar la que tengan resultado positivo, luego se eliminan las lineas repetidas
+    awk 'BEGIN {FS=";"; OFS=";"} {print $2}' T$archivo.csv.tmp | sort | uniq > region.tmp
+    i=0; while IFS= read -r line; do region[$i]=$line; ((i=$i+1)); done < region.tmp
+    max=$i
+
+    for ((i=0;i<max;i++));do
+        resultado=$(grep -w "${region[$i]}" tvar.tmp)
+        if [ -n "$resultado" ]; then
+            echo "$resultado" >> temp.tmp 
+        fi
+    done
+    awk '!array_temp[$0]++' temp.tmp > part3.tmp   #eliminar lineas repetidas 'no consecutivas' con awk
+
+    #Se unen los ficheros con awk para que las uniones esten correspondida por los coid y region
+    # FUNCIONA!!! no se por que pero funciona esta unio... nota: deno estudiar awk
+    awk 'BEGIN {FS=";"; OFS=";"} NR==FNR{a[$1,$2]=$0; next}{$7=a[$1,$2];print}' part3.tmp T$archivo.csv.tmp > test.csv
+    
+    # Se ordena la salida
+    awk 'BEGIN {FS=";"; OFS=";"} {print $1,";"$2,$9,$10,$11,$3,$4,$5,$6,$12}' test.csv >> T$archivo.csv
+    echo $totalF >> T$archivo.csv
+
+
 
 #------------------------------------ fichero con el contenido total CONCLUIDO -------------------------------------#
 #-------------------------------------------------------------------------------------------------------------------#
@@ -135,3 +162,7 @@ for zip in $(ls $origen/REPORTE*zip);do
 #         ((n=$n+1))
 #     done
 done
+
+
+#    3808 Yucat<DF>n 1 ABA
+#    3809 Yucat<DF>n 2 ABA
