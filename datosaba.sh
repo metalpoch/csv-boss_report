@@ -4,11 +4,11 @@
 # SU ANALISIS Y ARROJANDO TODOS LOS SECTORES JUNTOS PARA TENER ASI UN TOTAL COMPLETO
 
 # Directorios script:
-# bash /media/$USER/CA4D-951D/Scripts/"Shell Scripts"/CANTV/"analizador de REPORTES BOSS aba"/datosaba.sh
-
+# bash "/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/datosaba.sh"
 #-------------------------------------------------------------------------------------------------------------------#
 #--------------------------------------------------- VARIABLES  ----------------------------------------------------#
-
+#database="/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/database.kei"
+database="/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/EdoCoid.kei"
 origen=/home/"$USER"/Laboratorio-pruebas/"$USER"/Descargas  # Donde se encuentran los .zip a descomprimir
 spacework=/home/"$USER"/poch/DatosABA                       # Donde serán exportado los ficheros listo
 
@@ -80,11 +80,34 @@ for zip in $(ls $origen/REPORTE*zip);do
 
     #Se unen los ficheros con awk para que las uniones esten correspondida por los coid y region
     # FUNCIONA!!! no se por que pero funciona esta unio... nota: deno estudiar awk
-    awk 'BEGIN {FS=";"; OFS=";"} NR==FNR{a[$1,$2]=$0; next}{$7=a[$1,$2];print}' part3.tmp T$archivo.csv.tmp > test.csv
-    
+    awk 'BEGIN {FS=";"; OFS=";"} NR==FNR{a[$1,$2]=$0; next}{$7=a[$1,$2];print}' part3.tmp T$archivo.csv.tmp > temp.tmp 
+
     # Se ordena la salida
-    awk 'BEGIN {FS=";"; OFS=";"} {print $1,";"$2,$9,$10,$11,$3,$4,$5,$6,$12}' test.csv >> T$archivo.csv
+    awk 'BEGIN {FS=";"; OFS=";"} {print $1,$2,$9,$10,$11,$3,$4,$5,$6,$12}' temp.tmp > test.tmp
+    
+    # Edo por coid
+    i=0; while IFS= read -r line; do estado[$i]=$line; ((i=$i+1)); done < test.tmp
+    max=$i
+    for ((i=0;i<max;i++));do
+        coid=$(echo ${estado[$i]} | awk -F';' '{print $1}')
+        resultado=$(grep -w "$coid" "$database" | awk -F';' '{print $1}')
+        if [ -n "$resultado" ]; then
+            echo "$coid;$resultado" >> edotmp.csv
+        fi
+    done
+    cp edotmp.csv edoCoid.log
+    
+    join edotmp.csv test.tmp > cachapa # verificar si funciona
+    # Total cliente y Velocidad promedio
     echo $totalF >> T$archivo.csv
+
+
+
+    
+   
+
+    
+    
 
 
 
@@ -166,3 +189,7 @@ done
 
 #    3808 Yucat<DF>n 1 ABA
 #    3809 Yucat<DF>n 2 ABA
+
+
+#transformas de columnas a filas la base de dato de estadocoid
+#edo=$(ls edo/);time for i in $edo; do cat edo/$i | tr -s "\n" " " >> EdoCoid.kei; echo "" >> EdoCoid.kei;done
