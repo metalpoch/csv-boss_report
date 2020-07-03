@@ -93,23 +93,15 @@ for zip in $(ls $origen/REPORTE*zip);do
         resultado=$(grep -w "$coid" "$database" | awk -F';' '{print $1}')
         if [ -n "$resultado" ]; then
             echo "$coid;$resultado" >> edotmp.csv
+        else
+            echo "$coid;No entontrado en la base de dato" >> edotmp.csv
+            echo "$coid;No entontrado en la base de dato" >> "$archivo-error.log"
         fi
     done
-    cp edotmp.csv edoCoid.log
-    
-    join edotmp.csv test.tmp > cachapa # verificar si funciona
+    paste -d";" edotmp.csv test.tmp | awk 'BEGIN {FS=";"; OFS=";"} {print $1,$2,$4,$5,$6,$7,$8,$9,$10,$11,$12}' >> T$archivo.csv
+
     # Total cliente y Velocidad promedio
     echo $totalF >> T$archivo.csv
-
-
-
-    
-   
-
-    
-    
-
-
 
 #------------------------------------ fichero con el contenido total CONCLUIDO -------------------------------------#
 #-------------------------------------------------------------------------------------------------------------------#
@@ -132,35 +124,35 @@ for zip in $(ls $origen/REPORTE*zip);do
     limite=$(cat -n $archivo.tmp | grep limite | awk '{print $1}'); limite=($limite)
     
     # SE SELECCIONA EL PRIMER COID
-    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' > bc.tmp
+    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' > bc.tmp
     
     # CALCULOS MATEMATICOS POR COID
-    varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $5 } END { print clientes }' bc.tmp)  
-    varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $7 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
+    varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $7 } END { print clientes }' bc.tmp)  
+    varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $9 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)
     
     # IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
-    echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" > $archivo.csv
-    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' >> $archivo.csv
-    echo -e ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv
+    echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;DSLAMIP;AGREGADOR;CLIENTES;PLAN;VELOCIDAD POR PLAN;ESTATUS;PUERTOS POR COID" > $archivo.csv
+    sed -n "1,$(($limite-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' >> $archivo.csv
+    echo -e ";;;;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv
 
     j=1
     for (( i=0 ; i<=${#limite[*]} ; i++ )); do
         # SELECCIÓN DEL SIGUIENTE COID CORRESPONDIENTE
-        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' > bc.tmp
+        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' > bc.tmp
         
         # CALCULOS MATEMATICOS POR EQUIPO
         varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $5 } END { print clientes }' bc.tmp)
         varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $7 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)   
         
         #IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
-        echo "COID;ESTADO;REGIÓN;EQUIPO;CLIENTES;PLAN;VELOCIDAD POR PLAN" >> $archivo.csv
-        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7}' >> $archivo.csv
-        echo -e ";;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv       
+        echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;DSLAMIP;AGREGADOR;CLIENTES;PLAN;VELOCIDAD POR PLAN;ESTATUS;PUERTOS POR COID" >> $archivo.csv
+        sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' >> $archivo.csv
+        echo -e ";;;;;CLIENTES TOTALES:;$varC;VELOCIDAD PROMEDIO:;$varV\n" | tr -s "." "," >> $archivo.csv
         ((j++))
     done 2> /dev/null
     
     # ELIMINAR ULTIMAS 7 LINEAS SPAM
-    i=0; while [ $i -lt 7 ]; do sed -i '$d' $archivo.csv; ((i++)); done
+    #i=0; while [ $i -lt 7 ]; do sed -i '$d' $archivo.csv; ((i++)); done
     
 
     # SE RENOMBRAN ARCHIVOS FINALES PARA ELIMINAR LOS TEMPORALES Y LOS .CSV (ASI NO SALDRAN PERJUDICADOS)
@@ -168,22 +160,6 @@ for zip in $(ls $origen/REPORTE*zip);do
     rm *.tmp *.csv
     mv $archivo.csv.keiber $archivo.csv;  mv T$archivo.csv.keiber T$archivo.csv
 
-######################################## ALGORITMO DE ESTADO POR REGION/NODO ########################################
-
-#     # test
-#     awk -F';' '{print $2}' T$archivo.csv | sort | sed '1d' | uniq > reginodo.tmp
-#     i=0; while IFS= read -r line; do reginodo[$i]=$line; ((i=$i+1)); done < reginodo.tmp
-#     mkdir -p estado-region
-#     n=1
-
-#     # exporta las regiones y carpetas para ser revisado de uno en uno x.x
-#     # y ver cual no necesita :D y cual necesita :c ser agregado a la base de dato
-#     for i in "${reginodo[@]}"; do
-#         echo "$n / 3748"
-#         bash acronikey.sh --region "$i" | awk -F';' '{print $1}' | sort | uniq > estado-region/"$i.r"
-#         bash acronikey.sh --nodo "$i" | awk -F';' '{print $1}' | sort | uniq > estado-region/"$i.n"
-#         ((n=$n+1))
-#     done
 done
 
 
@@ -191,5 +167,5 @@ done
 #    3809 Yucat<DF>n 2 ABA
 
 
-#transformas de columnas a filas la base de dato de estadocoid
-#edo=$(ls edo/);time for i in $edo; do cat edo/$i | tr -s "\n" " " >> EdoCoid.kei; echo "" >> EdoCoid.kei;done
+# transformas de columnas a filas la base de dato de estadocoid:
+# edo=$(ls edo/);time for i in $edo; do cat edo/$i | tr -s "\n" " " >> EdoCoid.kei; echo "" >> EdoCoid.kei;done
