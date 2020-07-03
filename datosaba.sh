@@ -7,7 +7,6 @@
 # bash "/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/datosaba.sh"
 #-------------------------------------------------------------------------------------------------------------------#
 #--------------------------------------------------- VARIABLES  ----------------------------------------------------#
-#database="/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/database.kei"
 database="/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/EdoCoid.kei"
 origen=/home/"$USER"/Laboratorio-pruebas/"$USER"/Descargas  # Donde se encuentran los .zip a descomprimir
 spacework=/home/"$USER"/poch/DatosABA                       # Donde serán exportado los ficheros listo
@@ -141,8 +140,8 @@ for zip in $(ls $origen/REPORTE*zip);do
         sed -n "$((${limite[$i]}-$j+1)),$((${limite[$j]}-$j-1))"p a.tmp | awk 'BEGIN { FS=";" ; OFS=";" } { print $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11}' > bc.tmp
         
         # CALCULOS MATEMATICOS POR EQUIPO
-        varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $5 } END { print clientes }' bc.tmp)
-        varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $7 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)   
+        varC=$(awk 'BEGIN { FS=";" ; OFS=";" } { clientes += $7 } END { print clientes }' bc.tmp)
+        varV=$(awk 'BEGIN { FS=";" ; OFS=";" } { planClientes += $9 } END { printf "%.2f \n", planClientes/NR }' bc.tmp)   
         
         #IMPRIMIR CABECERA Y LAS COLUMNAS CON SUS RESPECTIVOS RESULTADO DE CALCULOS AL FINAL
         echo "COID;ESTADO;REGIÓN/NODO;EQUIPO;DSLAMIP;AGREGADOR;CLIENTES;PLAN;VELOCIDAD POR PLAN;ESTATUS;PUERTOS POR COID" >> $archivo.csv
