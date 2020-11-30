@@ -1,13 +1,8 @@
 #!/bin/bash
 
-# ESTE SCRIPT ANALIZA Y DEPURA LOS DATOS DE LOS FICHEROS "REPORTES BOSS" EXTRAYENDO SOLO LOS DATOS NECESARIOS PARA 
-# SU ANALISIS Y ARROJANDO TODOS LOS SECTORES JUNTOS PARA TENER ASI UN TOTAL COMPLETO
-
-# Directorios script:
-# bash "/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/datosaba.sh"
 #-------------------------------------------------------------------------------------------------------------------#
 #--------------------------------------------------- VARIABLES  ----------------------------------------------------#
-database="/media/$USER/CA4D-951D/Scripts/Shell Scripts/CANTV/Finalizados/datosaba/EdoCoid.kei"
+database="EdoCoid.kei"
 origen=/home/"$USER"/Laboratorio-pruebas/"$USER"/Descargas  # Donde se encuentran los .zip a descomprimir
 spacework=/home/"$USER"/poch/DatosABA                       # Donde serán exportado los ficheros listo
 
